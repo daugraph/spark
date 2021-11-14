@@ -396,6 +396,16 @@ class SparkSessionExtensionSuite extends SparkFunSuite {
         Nil)
     }
   }
+
+  test("SPARK-37202: temp view refers a inject function") {
+    val extensions = create { extensions =>
+      extensions.injectFunction(MyExtensions.myFunction)
+    }
+    withSession(extensions) { session =>
+      session.sql("CREATE TEMP VIEW v AS SELECT myFunction(a) FROM VALUES(1), (2) t(a)")
+      session.sql("SELECT * FROM v")
+    }
+  }
 }
 
 case class MyRule(spark: SparkSession) extends Rule[LogicalPlan] {
@@ -536,7 +546,7 @@ case class NoCloseColumnVector(wrapped: ColumnVector) extends ColumnVector(wrapp
 
   override def getBinary(rowId: Int): Array[Byte] = wrapped.getBinary(rowId)
 
-  override protected def getChild(ordinal: Int): ColumnVector = wrapped.getChild(ordinal)
+  override def getChild(ordinal: Int): ColumnVector = wrapped.getChild(ordinal)
 }
 
 trait ColumnarExpression extends Expression with Serializable {
